@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>化学品泄漏演练就绪门禁</title>
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="kicker">校园实验楼安全治理</p>
+      <h1>化学品泄漏演练就绪门禁</h1>
+    </div>
+    <div class="top-actions">
+      <label class="actor-field">当前操作者<input id="actor" autocomplete="off" placeholder="人员 ID"></label>
+      <button id="reload" class="secondary" type="button">刷新案件</button>
+    </div>
+  </header>
+
+  <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+  <nav class="status-strip" aria-label="演练流程">
+    <span data-step="draft">情景草拟</span><span data-step="pending_check">开始前核验</span>
+    <span data-step="ready">首演</span><span data-step="remediation">偏差整改</span>
+    <span data-step="retest_ready">定向复演</span><span data-step="pending_review">独立复核</span>
+    <span data-step="approved">档案冻结</span>
+  </nav>
+
+  <main>
+    <aside class="case-rail">
+      <div class="rail-heading"><h2>演练案件</h2><button id="new-case" type="button">新建</button></div>
+      <div id="case-list" class="case-list"></div>
+    </aside>
+
+    <div class="workspace">
+      <section id="empty-state" class="empty-state">
+        <h2>选择或创建演练案件</h2>
+        <p>案件状态、演练记录与就绪档案将在此处呈现。</p>
+      </section>
+
+      <section id="case-summary" class="summary-band" hidden>
+        <div><p class="kicker">当前案件</p><h2 id="case-title"></h2><p id="case-building" class="muted"></p></div>
+        <dl><div><dt>状态</dt><dd id="case-status"></dd></div><div><dt>修订</dt><dd id="case-revision"></dd></div><div><dt>协调员</dt><dd id="case-coordinator"></dd></div></dl>
+      </section>
+
+      <section id="create-panel" class="work-section" hidden>
+        <header><div><p class="section-index">01</p><h2>创建演练案件</h2></div></header>
+        <form id="create-form" class="form-grid">
+          <label>案件标题<input name="title" required></label>
+          <label>实验楼<input name="building" required></label>
+          <label>安全协调员 ID<input name="coordinator_id" required></label>
+          <label>观察员 ID（逗号分隔）<input name="observer_ids" required></label>
+          <div class="form-actions"><button type="submit">创建案件</button><button class="secondary" data-cancel type="button">取消</button></div>
+        </form>
+      </section>
+
+      <section id="baseline-panel" class="work-section" hidden>
+        <header><div><p class="section-index">02</p><h2>冻结泄漏情景与阈值</h2></div><span class="lock-label">冻结后不可改写</span></header>
+        <form id="baseline-form" class="form-grid">
+          <label>泄漏物质<input name="chemical_name" required></label>
+          <label>危险类别<input name="hazard_class" required></label>
+          <label>影响区域（逗号分隔）<input name="affected_zones" required></label>
+          <label>响应角色（逗号分隔）<input name="required_roles" required></label>
+          <div class="wide threshold-editor">
+            <div class="table-heading"><h3>量化观测点</h3><button id="add-threshold" class="secondary" type="button">增加观测点</button></div>
+            <div id="threshold-rows"></div>
+          </div>
+          <div class="form-actions"><button id="precheck-baseline" class="secondary" type="button">一致性预检</button><button type="submit">冻结情景</button></div>
+          <div id="baseline-precheck-result" class="precheck-result wide" hidden></div>
+        </form>
+      </section>
+
+      <section id="baseline-view" class="work-section" hidden>
+        <header><div><p class="section-index">02</p><h2>冻结情景</h2></div><code id="baseline-digest"></code></header>
+        <div id="baseline-detail" class="fact-grid"></div>
+      </section>
+
+      <section id="preflight-panel" class="work-section" hidden>
+        <header><div><p class="section-index">03</p><h2>开始前核验</h2></div><span id="check-progress"></span></header>
+        <div id="check-list" class="check-list"></div>
+      </section>
+
+      <section id="session-panel" class="work-section" hidden>
+        <header><div><p class="section-index">04</p><h2 id="session-heading">演练场次</h2></div><span id="session-clock" class="clock">00:00</span></header>
+        <div id="session-start" class="action-row"><button id="start-session" type="button">启动场次</button><span id="session-scope" class="muted"></span></div>
+        <div id="session-live" hidden>
+          <form id="event-form" class="inline-form">
+            <label>响应动作<select name="action"><option value="discovery">发现</option><option value="alarm">报警</option><option value="isolation">隔离</option><option value="evacuation">疏散</option><option value="control">控制</option><option value="cleanup">清理</option></select></label>
+            <label>记录摘要<input name="note"></label><button type="submit">记录动作</button>
+          </form>
+          <form id="observation-form" class="inline-form">
+            <label>观测点<select name="point_id" id="observation-point"></select></label>
+            <label>观测值<input name="value" type="number" step="any" required></label>
+            <label>证据摘要<input name="evidence_summary" required></label><button type="submit">记录观测</button>
+          </form>
+          <div class="finish-row"><button id="finish-session" class="danger" type="button">结束并评价场次</button></div>
+        </div>
+        <div id="timeline" class="timeline"></div>
+      </section>
+
+      <section id="deviation-panel" class="work-section" hidden>
+        <header><div><p class="section-index">05</p><h2>偏差整改队列</h2></div><span id="deviation-count"></span></header>
+        <div id="deviation-list" class="deviation-list"></div>
+      </section>
+
+      <section id="review-panel" class="work-section" hidden>
+        <header><div><p class="section-index">06</p><h2>独立安全复核</h2></div><span class="lock-label">结论将冻结案件</span></header>
+        <form id="review-form" class="form-grid">
+          <label>独立复核员 ID<input name="reviewer_id" required></label>
+          <div class="wide"><h3>结构化复核清单</h3><div id="review-checklist" class="check-list"></div></div>
+          <label class="wide">复核意见<textarea name="review_note" rows="3" required></textarea></label>
+          <div class="form-actions"><button name="decision" value="approve" type="submit">批准并封存</button><button name="decision" value="reject" class="danger" type="submit">拒绝并冻结</button></div>
+        </form>
+      </section>
+
+      <section id="dossier-panel" class="work-section" hidden>
+        <header><div><p class="section-index">07</p><h2>就绪档案</h2></div><span id="dossier-decision"></span></header>
+        <div class="digest-block"><span>SHA-256</span><code id="dossier-digest"></code><button id="verify-dossier" class="secondary" type="button">重新校验</button><button id="download-dossier" class="secondary" type="button">下载档案包</button></div>
+        <div id="verify-result" class="verify-result"></div>
+        <details><summary>规范化档案清单</summary><pre id="dossier-manifest"></pre></details>
+      </section>
+    </div>
+  </main>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>
